@@ -1,2 +1,4 @@
-package ca.tlcp.hpsocialsserver.repositories;public class PostRepository {
+package ca.tlcp.hpsocialsserver.repositories;
+
+public class PostRepository {
 }
