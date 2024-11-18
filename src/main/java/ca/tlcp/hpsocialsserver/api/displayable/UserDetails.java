@@ -1,4 +1,4 @@
-package ca.tlcp.hpsocialsserver.displayable;
+package ca.tlcp.hpsocialsserver.api.displayable;
 
 import ca.tlcp.hpsocialsserver.objects.User;
 import ca.tlcp.hpsocialsserver.repositories.UserRepository;

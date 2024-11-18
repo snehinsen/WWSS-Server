@@ -1,4 +1,7 @@
 package ca.tlcp.hpsocialsserver.repositories;
 
-public class PostRepository {
+import ca.tlcp.hpsocialsserver.objects.Post;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface PostRepository extends JpaRepository<Post, Long> {
 }

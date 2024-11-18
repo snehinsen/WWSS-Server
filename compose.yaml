@@ -9,3 +9,9 @@ services:
     ports:
       - '5174:3306'
     restart: always
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 5175:8080
