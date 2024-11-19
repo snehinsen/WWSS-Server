@@ -1,9 +1,12 @@
 package ca.tlcp.hpsocialsserver.api;
 
+import ca.tlcp.hpsocialsserver.api.displayable.CommentDetails;
 import ca.tlcp.hpsocialsserver.api.displayable.PostDetails;
 import ca.tlcp.hpsocialsserver.api.displayable.UserDetails;
+import ca.tlcp.hpsocialsserver.objects.Comment;
 import ca.tlcp.hpsocialsserver.objects.Post;
 import ca.tlcp.hpsocialsserver.objects.User;
+import ca.tlcp.hpsocialsserver.repositories.CommentRepository;
 import ca.tlcp.hpsocialsserver.repositories.PostRepository;
 import ca.tlcp.hpsocialsserver.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 @RestController
 @RequestMapping("/api")
@@ -22,6 +26,9 @@ public class APIController {
 
     @Autowired
     private PostRepository postRepository;
+
+    @Autowired
+    private CommentRepository commentRepository;
 
     private List<User> getFriends(User user) {
         List<User> friendsList = new ArrayList<>();
@@ -107,9 +114,27 @@ public class APIController {
         System.out.println(body);
         System.out.println(username);
         postRepository.save(
-                new Post(body, new ArrayList<>(), userRepository.getUserByUsername(username).get())
+                new Post(body, null, userRepository.getUserByUsername(username).get())
         );
         return true;
+    }
+
+    @GetMapping(path = "getPostComments/{pID}")
+    public List<CommentDetails> getComments(@PathVariable long pID) {
+        List<CommentDetails> details = new ArrayList<>();
+        try{
+            for (Comment comment : commentRepository
+                    .getAllByPost(
+                            postRepository
+                                    .findById(pID)
+                                    .get())) {
+                details.add(new CommentDetails(comment));
+            }
+        } catch (NoSuchElementException e) {
+            e.printStackTrace();
+        }
+        return details;
+
     }
 
     private void addTMPPost() {
