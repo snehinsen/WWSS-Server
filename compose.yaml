@@ -1,17 +1,16 @@
 services:
-  mysql:
-    image: 'mysql:latest'
+  postgres:
+    image: postgres:latest
     environment:
-      - 'MYSQL_DATABASE=wwssdb'
-      - 'MYSQL_PASSWORD=password'
-      - 'MYSQL_ROOT_PASSWORD=rootpassword'
-      - 'MYSQL_USER=admin'
+      POSTGRES_DB: wwssdb
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
     ports:
-      - '5174:3306'
+      - "5174:5432"
     restart: always
 
   adminer:
     image: adminer
     restart: always
     ports:
-      - 5175:8080
+      - "5175:8080"
