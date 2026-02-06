@@ -1,16 +1,22 @@
 services:
-  postgres:
-    image: postgres:latest
+  db:
+    image: 'postgres:latest'
+    container_name: db
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: wwssdb
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password
+      - 'POSTGRES_DB=wwssdb'
+      - 'POSTGRES_PASSWORD=secret'
+      - 'POSTGRES_USER=admin'
     ports:
-      - "5174:5432"
-    restart: always
-
+      - '5174:5432'
   adminer:
-    image: adminer
+    image: ghcr.io/shyim/adminerevo:latest
     restart: always
+    environment:
+      - "ADMINER_DEFAULT_SERVER=db"
+      - "ADMINER_DEFAULT_HOST=psql"
+      - "ADMINER_DEFAULT_DB=wwssdb"
+      - "ADMINER_DEFAULT_USERNAME=admin"
+      - "ADMINER_DEFAULT_PASSWORD=secret"
     ports:
       - "5175:8080"

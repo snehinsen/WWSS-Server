@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: hp-socials-server
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+server:
+  port: 8544
