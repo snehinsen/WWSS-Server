@@ -65,7 +65,6 @@ class SecurityConfig {
                 auth
                     .requestMatchers(
                         "/",
-                        "/**"
                     ).permitAll()
                     .anyRequest().authenticated()
             }
