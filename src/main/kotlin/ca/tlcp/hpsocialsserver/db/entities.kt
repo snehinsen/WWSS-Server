@@ -56,7 +56,7 @@ data class Comment(
 @Table(name = "posts")
 data class Post(
 
-    @Lob
+    @Column(columnDefinition = "text")
     var body: String? = null,
 
     @OneToMany(mappedBy = "post", cascade = [CascadeType.ALL], orphanRemoval = true)
@@ -74,7 +74,7 @@ data class Post(
 
 @Entity
 @Table(name = "users")
-class User() {
+class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null
@@ -82,7 +82,7 @@ class User() {
     @Column(nullable = false)
     var name: String? = null
 
-    @Lob
+    @Column(columnDefinition = "text")
     var bio: String? = null
 
     @Lob
@@ -95,7 +95,7 @@ class User() {
     var isWizarding: Boolean = false
 
     @Column(unique = true, nullable = false)
-    var username: String? = null
+    var email: String? = null
 
     var password: String? = null
 
@@ -106,4 +106,46 @@ class User() {
 
     @Column(unique = true, nullable = false)
     var handle: String? = null
+
+    constructor(
+        name: String?,
+        bio: String?,
+        pfp: ByteArray?,
+        isBot: Boolean,
+        isWizarding: Boolean,
+        email: String?,
+        password: String?
+    ) {
+        this.name = name
+        this.bio = bio
+        this.pfp = pfp
+        this.isBot = isBot
+        this.isWizarding = isWizarding
+        this.email = email
+        this.password = password
+        handle = name!!.replace(" ", "")
+    }
+
+    constructor()
+    constructor(
+        name: String?,
+        bio: String?,
+        pfp: ByteArray?,
+        isBot: Boolean,
+        isWizarding: Boolean,
+        email: String?,
+        password: String?,
+        handle: String?
+    ) {
+        this.name = name
+        this.bio = bio
+        this.pfp = pfp
+        this.isBot = isBot
+        this.isWizarding = isWizarding
+        this.email = email
+        this.password = password
+        this.handle = handle
+    }
+
+
 }

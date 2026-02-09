@@ -14,8 +14,9 @@ interface PostRepository : JpaRepository<Post, Long>
 
 @Repository
 interface UserRepository : JpaRepository<User, Long> {
-    fun getUserByUsername(username: String?): Optional<User?>?
     fun getUserById(id: Long): Optional<User?>?
-    fun getUserByHandle(handle: String?): Optional<User?>?
-    fun existsUserByUsername(username: String?): Boolean
+    fun getUserByHandle(handle: String?): Optional<User>
+    fun getUserByEmail(email: String?): Optional<User>
+    fun existsUserByEmail(email: String?): Boolean
+    fun existsUserByHandle(handle: String): Boolean
 }

@@ -27,6 +27,7 @@ repositories {
 }
 
 dependencies {
+    implementation("io.github.cdimascio:dotenv-kotlin:6.5.1")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-security-oauth2-client")
