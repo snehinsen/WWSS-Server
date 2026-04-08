@@ -1,7 +1,7 @@
 plugins {
     kotlin("jvm") version "2.2.21"
     kotlin("plugin.spring") version "2.2.21"
-    id("org.springframework.boot") version "4.0.2"
+    id("org.springframework.boot") version "4.0.5"
     id("io.spring.dependency-management") version "1.1.7"
     kotlin("plugin.jpa") version "2.2.21"
 }
@@ -34,11 +34,25 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("tools.jackson.module:jackson-module-kotlin")
+    implementation("io.ktor:ktor-client-core:2.3.9")
+    implementation("io.ktor:ktor-client-cio:2.3.9")
+    implementation("io.ktor:ktor-client-content-negotiation:2.3.9")
+    implementation("io.ktor:ktor-serialization-jackson:2.3.9")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.17.0")
+
     compileOnly("org.projectlombok:lombok")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     developmentOnly("org.springframework.boot:spring-boot-docker-compose")
     runtimeOnly("org.postgresql:postgresql")
     annotationProcessor("org.projectlombok:lombok")
+    implementation("org.springframework.boot:spring-boot-starter-websocket")
+
+    implementation("dev.langchain4j:langchain4j-ollama:1.12.2")
+    implementation("dev.langchain4j:langchain4j:1.12.2")
+    implementation("org.jsoup:jsoup:1.22.1")
+
+
+    // test implementations
     testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
     testImplementation("org.springframework.boot:spring-boot-starter-security-oauth2-client-test")
     testImplementation("org.springframework.boot:spring-boot-starter-security-test")

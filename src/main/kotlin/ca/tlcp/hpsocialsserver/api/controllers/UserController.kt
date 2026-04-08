@@ -1,126 +1,230 @@
 package ca.tlcp.hpsocialsserver.api.controllers
 
 import ca.tlcp.hpsocialsserver.api.UserDetails
+import ca.tlcp.hpsocialsserver.api.getuserID
 import ca.tlcp.hpsocialsserver.db.User
 import ca.tlcp.hpsocialsserver.db.UserRepository
-import ca.tlcp.hpsocialsserver.toolchain.toUserDetails
+import ca.tlcp.hpsocialsserver.fs.PFPEntity
+import ca.tlcp.hpsocialsserver.fs.PFPRepresentation
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.data.crossstore.ChangeSetPersister
+import org.springframework.core.io.FileSystemResource
+import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
+import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.security.core.context.SecurityContextHolder
-import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.security.crypto.password.PasswordEncoder
-import org.springframework.security.oauth2.core.user.OAuth2User
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
+import java.nio.file.Files
+
+typealias SpringUserDetails = org.springframework.security.core.userdetails.UserDetails
+
 
 @RestController
 @RequestMapping("/api/user")
 class UserController {
+
+
+    data class UserRegistrationRequest(
+        val firstName: String,
+        val lastName: String,
+        val email: String,
+        val password: String,
+    )
+
+    class UserCustomizerRequest(
+        val handle: String,
+        val isWizarding: Boolean,
+    )
+
+    @Autowired
+    private lateinit var authManager: AuthenticationManager
+
     @Autowired
     private var userRepository: UserRepository? = null
 
     @Autowired
     private var passwordEncoder: PasswordEncoder? = null
 
+    @GetMapping
+    fun me(
+        @AuthenticationPrincipal user: Any
+    ): UserDetails {
+        val email = getuserID(user)
+
+        val selectedUser: User = userRepository!!.getUserByEmail(email)!!.get()
+
+        return UserDetails(selectedUser, userRepository!!)
+    }
+
+    @GetMapping(path = ["/search"])
+    fun getFiltered(@AuthenticationPrincipal user: Any, @RequestParam(name = "q") query: String): List<UserDetails> {
+        val email = getuserID(user)
+        var users: List<User> = userRepository!!.findAll().filter {
+            !it.email.equals(email)
+        }
+        if (query.isNotEmpty() || query.isNotBlank()) {
+            users = users.filter {
+                it.handle!!.contains(query) || it.firstName!!.contains(query) || it.lastName!!.contains(query)
+            }
+        } else {
+            return users.map { user ->
+                UserDetails(user, userRepository!!)
+            }
+        }
+
+
+        println("Found ${users.size} users matching query '$query' for user with email '$email'")
+
+        return users.map { user: User ->
+            UserDetails(user, userRepository!!)
+        }
+    }
 
     @PostMapping(path = ["/signup"])
     fun addUser(
-        @RequestBody request: UserRegistrationRequest
+        @RequestBody request: UserRegistrationRequest,
     ): Boolean {
         if (userRepository!!.existsUserByEmail(request.email)) {
             return false
         } else {
-            val tmpUser = User(
-                name = request.name,
-                email = request.email,
-                password = passwordEncoder?.encode(request.password),
-                isBot = false,
-                isWizarding = false,
-                bio = "",
-                pfp = null,
-                handle = ""
-            )
+            try {
+                val tmpUser = User(
+                    firstName = request.firstName,
+                    lastName = request.lastName,
+                    email = request.email,
+                    password = passwordEncoder?.encode(request.password),
+                    isBot = false,
+                    isWizarding = false,
+                    bio = "",
+                    pfp = null,
+                )
+                val saved = userRepository!!.save(tmpUser)
+                println("User saved: $saved")
 
-            userRepository!!.save(tmpUser)
+                val authToken = UsernamePasswordAuthenticationToken(request.email, request.password)
+                val auth = authManager.authenticate(authToken)
+                SecurityContextHolder.getContext().authentication = auth
 
-            val userDetails = tmpUser.toUserDetails()
-            val auth = UsernamePasswordAuthenticationToken(userDetails, null, userDetails.authorities)
-            SecurityContextHolder.getContext().authentication = auth
-
-            return true
+                return true
+            } catch (e: Exception) {
+                println("Error during user registration: ${e.message}")
+                e.printStackTrace()
+                return false
+            }
         }
     }
+
 
     @PostMapping(path = ["/configure"])
     fun configure(
-        @RequestParam handle: String,
-        @RequestParam isWizarding: Boolean,
+        @RequestBody request: UserCustomizerRequest,
         @AuthenticationPrincipal user: Any
     ): Boolean {
-        val email = when (user) {
-            is SpringUserDetails ->
-                user.username
+        val email = getuserID(user)
 
-            is OAuth2User ->
-                user.attributes["email"] as String
-
-            else -> throw IllegalStateException("Unknown principal type")
+        println("Configuring user with email: $email, handle: ${request.handle}, isWizarding: ${request.isWizarding}")
+        try {
+            val selectedUser: User? = userRepository?.getUserByEmail(email)?.orElse(null)
+            selectedUser!!.handle = request.handle
+            selectedUser!!.isWizarding = request.isWizarding
+            userRepository!!.save(selectedUser)
+            return true
+        } catch (e: Exception) {
+            println("Error during user configuration: ${e.message}")
+            e.printStackTrace()
+            return false
         }
-
-        val selectedUser: User? = userRepository?.getUserByEmail(email)?.orElse(null)
-        selectedUser!!.handle = handle
-        selectedUser!!.isWizarding = isWizarding
-        return true
     }
 
-    @PostMapping(path = ["/uploadPfp"])
+    @PostMapping(path = ["/pfp"])
     fun uploadPfp(
         @RequestParam(value = "file") pfp: MultipartFile,
         @AuthenticationPrincipal user: Any
     ): Boolean {
-        val email = when (user) {
-            is SpringUserDetails ->
-                user.username
+        val email = getuserID(user)
+        try {
+            val selectedUser: User? = userRepository?.getUserByEmail(email)?.orElse(null)
 
-            is OAuth2User ->
-                user.attributes["email"] as String
+            PFPEntity().saveObject(
+                label = selectedUser!!.handle!!,
+                entity = PFPRepresentation(
+                    label = pfp.originalFilename!!.split(".").last(),
+                    value = pfp.bytes
+                )
+            )
 
-            else -> throw IllegalStateException("Unknown principal type")
+            selectedUser!!.pfp =
+                "/api/user/pfp/${selectedUser.handle}"
+
+            userRepository!!.save(selectedUser)
+
+            return true
+        } catch (e: Exception) {
+            println("Error during profile picture upload: ${e.message}")
+            e.printStackTrace()
+            return false
         }
-
-        val selectedUser: User? = userRepository?.getUserByEmail(email)?.orElse(null)
-        selectedUser!!.pfp = pfp.bytes
-        return true
     }
 
     @GetMapping(path = ["/handleCheck"])
-    fun handleCheck(@RequestParam handle: String = ""): Boolean {
-        return !userRepository!!.existsUserByHandle(handle)
+    fun handleCheck(@RequestParam handle: String = "", @AuthenticationPrincipal user: Any): Boolean {
+        val currentUser: User = userRepository!!.getUserByEmail(getuserID(user)).get()
+
+        return if (currentUser.handle != handle) !userRepository!!.existsUserByHandle(handle) else true
+
     }
 
     @GetMapping(path = ["{handle}"])
-    fun getProfile(@PathVariable handle: String?): ca.tlcp.hpsocialsserver.api.UserDetails {
-        val selectedUser: User? = userRepository?.getUserByHandle(handle)?.orElse(null)
-        val details = UserDetails(selectedUser!!)
+    fun getProfile(@PathVariable handle: String?): UserDetails? {
+        println("Getting profile for handle: $handle")
+        try {
+            val selectedUser: User = userRepository!!.getUserByHandle(handle)!!.get()
+            val details = UserDetails(selectedUser!!, userRepository!!)
 
-        return details
+            return details
+        } catch (e: Exception) {
+            println("Error getting profile for handle '$handle': ${e.message}")
+            e.printStackTrace()
+            return null
+        }
     }
+
+    @GetMapping("/pfp/{handle}")
+    fun getPicture(@PathVariable handle: String): ResponseEntity<FileSystemResource> {
+       try {
+           val selectedUser = userRepository!!.getUserByHandle(handle).get()
+
+           val file = PFPEntity().getObject(selectedUser.handle!!)
+
+           val resource = FileSystemResource(file)
+
+           val contentType = Files.probeContentType(file.toPath())
+
+           return ResponseEntity.ok()
+               .contentType(MediaType.parseMediaType(contentType))
+               .body(resource)
+       } catch (e: Exception) {
+           println("Error getting profile for handle '$handle': ${e.message}")
+           e.printStackTrace()
+           return ResponseEntity.badRequest().body(FileSystemResource(""))
+       }
+    }
+
 
     @GetMapping(path = ["/id/{id}"])
     fun getProfileById(@PathVariable id: Long?): UserDetails {
         val selectedUser: User? = userRepository?.getUserById(id!!)?.orElse(null)
-        val details = UserDetails(selectedUser!!)
-
-        return details
+        return UserDetails(selectedUser!!, userRepository!!)
     }
 
-    @GetMapping(path = ["/"])
+    @GetMapping(path = ["/all"])
     fun allUsers(): MutableList<UserDetails?> {
         val userDetailsList: MutableList<UserDetails?> = ArrayList<UserDetails?>()
         for (user in userRepository?.findAll()!!) {
-            userDetailsList.add(UserDetails(user!!))
+            userDetailsList.add(UserDetails(user!!, userRepository!!))
         }
         return userDetailsList
     }

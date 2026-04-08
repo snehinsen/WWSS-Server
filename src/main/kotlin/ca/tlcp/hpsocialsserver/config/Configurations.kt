@@ -4,23 +4,26 @@ import ca.tlcp.hpsocialsserver.service.CustomOAuth2UserService
 import ca.tlcp.hpsocialsserver.service.CustomUserDetailsService
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.messaging.simp.config.MessageBrokerRegistry
+import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.AuthenticationProvider
+import org.springframework.security.authentication.ProviderManager
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.config.Customizer
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer
 import org.springframework.security.config.http.SessionCreationPolicy
+import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.SecurityFilterChain
-import org.springframework.security.web.authentication.AuthenticationFailureHandler
-import org.springframework.security.web.authentication.AuthenticationSuccessHandler
-import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler
-import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler
 import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.CorsConfigurationSource
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource
+import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker
+import org.springframework.web.socket.config.annotation.StompEndpointRegistry
+import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer
 
 
 @Configuration
@@ -37,17 +40,6 @@ class SecurityConfig(
                 "/favicon.ico",
             )
         }
-    }
-
-
-    @Bean
-    fun oauth2LoginAuthenticationSuccessHandler(): AuthenticationSuccessHandler {
-        return SimpleUrlAuthenticationSuccessHandler("/app/feed")  // Redirect to the feed after successful login
-    }
-
-    @Bean
-    fun oauth2LoginAuthenticationFailureHandler(): AuthenticationFailureHandler {
-        return SimpleUrlAuthenticationFailureHandler("/app/login?error=true")  // Handle failure
     }
 
     @Bean
@@ -108,14 +100,12 @@ class SecurityConfig(
                     ).permitAll()
                     .requestMatchers(
                         "/",
-                        "/app",
-                        "/app/privacy",
-                        "/app/tos",
-                        "/api/signup",
+                        "/privacy",
+                        "/tos",
+                        "/register",
                         "/login",
-                        "/app/login",
-                        "/app/login/**",
-                        "/assets/**",   // 👈 THIS
+                        "/api/user/signup",
+                        "/assets/**",
                         "/static/**",
                         "/favicon.ico",
                         "/**/*.js",
@@ -131,22 +121,22 @@ class SecurityConfig(
             .httpBasic(Customizer.withDefaults())
             .formLogin { login ->
                 login
-                    .loginPage("/app/login")
+                    .loginPage("/login")
                     .loginProcessingUrl("/login")
-                    .defaultSuccessUrl("/app/feed", true)
-                    .failureUrl("/app/login?error=true")
+                    .defaultSuccessUrl("/app/feed", false)
+                    .failureUrl("/login?error=true")
                     .permitAll()
             }
             .oauth2Login { login ->
                 println("Configuring OAuth2 login...")
                 login
-                    .loginPage("/app/login")
+                    .loginPage("/login")
                     .authorizationEndpoint { endpoint ->
                         endpoint.baseUri("/oauth2")
                         println("OAuth2 authorization endpoint configured.")
                     }
-                    .successHandler(oauth2LoginAuthenticationSuccessHandler())
-                    .failureHandler(oauth2LoginAuthenticationFailureHandler())
+                    .defaultSuccessUrl("/app/feed", false)
+                    .failureUrl("/login?error=true")
                     .userInfoEndpoint { userInfoEndpoint ->
                         userInfoEndpoint
                             .userService(customOAuth2UserService)
@@ -160,11 +150,39 @@ class SecurityConfig(
             .logout { logout ->
                 logout
                     .logoutUrl("/logout")
-                    .logoutSuccessUrl("/app/login?logout=true")
+                    .logoutSuccessUrl("/login?logout=true")
                     .permitAll()
             }
 
         return http.build()
+    }
+
+    @Bean
+    fun authManager(
+        userDetailsService: UserDetailsService,
+        passwordEncoder: PasswordEncoder
+    ): AuthenticationManager {
+        val authProvider = DaoAuthenticationProvider(userDetailsService).apply {
+            setPasswordEncoder(passwordEncoder)
+        }
+
+        return ProviderManager(listOf(authProvider))
+    }
+
+}
+
+@Configuration
+@EnableWebSocketMessageBroker
+class WebSocketConfig: WebSocketMessageBrokerConfigurer {
+     override fun registerStompEndpoints(registry: StompEndpointRegistry) {
+        registry
+            .addEndpoint("/ws")
+            .withSockJS()
+    }
+
+     override fun configureMessageBroker(registry: MessageBrokerRegistry) {
+        registry.enableSimpleBroker("/topic", "/queue")
+        registry.setApplicationDestinationPrefixes("/app")
     }
 
 }

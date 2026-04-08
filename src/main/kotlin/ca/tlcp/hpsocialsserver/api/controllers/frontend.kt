@@ -1,6 +1,5 @@
-package ca.tlcp.hpsocialsserver
+package ca.tlcp.hpsocialsserver.api.controllers
 
-import jakarta.servlet.http.HttpServletRequest
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -8,17 +7,17 @@ import org.springframework.web.bind.annotation.RequestMapping
 @Controller
 class ForwardController {
 
-    @RequestMapping(value = ["/login"])
+    @RequestMapping(value = ["/login", "/register", "/setup", "/forgot-password"])
     fun forwardLoginPage(): String {
-        return "redirect:/app/login"
+        return "forward:/index.html"
     }
 
     @RequestMapping(value = ["/"])
     fun forwardRootURL(): String {
-        return "redirect:/app/"
+        return "forward:/index.html"
     }
 
-    @GetMapping(value = ["/app/*", "/app/*/**", "/app/*/*/**", "/app/*/*/*/**"])
+    @GetMapping(value = ["/app/**", "/app/*/**", "/app/*/*/**", "/app/*/*/*/**"])
     fun forward(): String {
 
         return "forward:/index.html"

@@ -9,8 +9,8 @@ spring:
       client:
         registration:
           google:
-            client-id: 784845716167-28uge0u69tvt2mfns53492jsanlr5ubj.apps.googleusercontent.com
-            client-secret: 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
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
             redirect-uri: "{baseUrl}/oauth2/code/google"
             scope:
               - email
@@ -29,11 +29,21 @@ spring:
       enabled: true
       max-file-size: 1GB
       max-request-size: 1GB
+  web:
+    error:
+      path: /error
+      
+
 
 
 server:
   port: 8544
   forward-headers-strategy: framework
+  tomcat:
+    remoteip:
+      protocol-header: x-forwarded-proto
+      remote-ip-header: x-forwarded-for
+      host-header: x-forwarded-host
 
 logging:
   level:

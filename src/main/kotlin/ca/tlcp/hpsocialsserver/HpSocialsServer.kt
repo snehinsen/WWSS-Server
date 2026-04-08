@@ -1,19 +1,21 @@
 package ca.tlcp.hpsocialsserver
 
+import ca.tlcp.hpsocialsserver.fs.fsRoot
 import io.github.cdimascio.dotenv.dotenv
+import jakarta.annotation.PostConstruct
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
+import java.io.File
 
 @SpringBootApplication
 class HpSocialsServer
 
 fun main(args: Array<String>) {
-    val dotenv = dotenv()
 
-    // Print out the environment variables to verify if they are being loaded
-//    println("GOOGLE_CLIENT_ID: ${dotenv["GOOGLE_CLIENT_ID"]}")
-//    println("GOOGLE_CLIENT_SECRET: ${dotenv["GOOGLE_CLIENT_SECRET"]}")
-//    println("FACEBOOK_CLIENT_ID: ${dotenv["FACEBOOK_CLIENT_ID"]}")
-//    println("FACEBOOK_CLIENT_SECRET: ${dotenv["FACEBOOK_CLIENT_SECRET"]}")
+    val rootFolder = File(fsRoot)
+    if (!rootFolder.exists()) {
+        rootFolder.mkdir()
+    }
+
     runApplication<HpSocialsServer>(*args)
 }

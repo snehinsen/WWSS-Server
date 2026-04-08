@@ -1,76 +1,45 @@
 package ca.tlcp.hpsocialsserver.db
 
+import ca.tlcp.hpsocialsserver.CharacterState
 import jakarta.persistence.*
+import java.time.Instant
+
 
 @Entity
-@Table(name = "comment_images")
-data class CommentImage(
-    @Lob
-    var data: ByteArray? = null,
-
-    @ManyToOne
-    @JoinColumn(name = "comment_id", nullable = false)
-    var comment: Comment? = null
-) {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long? = null
-}
-
-@Entity
-@Table(name = "post_images")
+@Table(name = "images")
 data class PostImage(
 
     @Lob
-    var data: ByteArray? = null,
-
-    @ManyToOne
-    @JoinColumn(name = "post_id", nullable = false)
-    var post: Post? = null
+    var data: String? = null,
 ) {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null
-}
-
-@Entity
-@Table(name = "comments")
-data class Comment(
-    val body: String? = null,
-
-    @OneToMany(mappedBy = "comment", cascade = [CascadeType.ALL], orphanRemoval = true)
-    val attachedImages: MutableList<CommentImage> = mutableListOf(),
-
-    @ManyToOne
-    @JoinColumn(name = "post_id", nullable = false)
-    val post: Post? = null
-) {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long? = null
-
 }
 
 
 @Entity
 @Table(name = "posts")
 data class Post(
-
     @Column(columnDefinition = "text")
     var body: String? = null,
 
-    @OneToMany(mappedBy = "post", cascade = [CascadeType.ALL], orphanRemoval = true)
-    var attachedImages: MutableList<PostImage>? = mutableListOf(),
+    @ManyToOne
+    @JoinColumn(name = "parent_post_id") // Foreign key linking to the parent post, can be null if it's a regular post
+    var parent: Post? = null,
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
-    var user: User? = null
+    var user: User? = null,
+
+    @OneToMany
+    @JoinColumn(name = "images_id")
+    var attachedImages: MutableList<PostImage> = mutableListOf() // Images attached to this post
 ) {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null
 }
-
 
 @Entity
 @Table(name = "users")
@@ -80,13 +49,16 @@ class User {
     var id: Long? = null
 
     @Column(nullable = false)
-    var name: String? = null
+    var firstName: String? = null
+
+    @Column(nullable = false)
+    var lastName: String? = null
 
     @Column(columnDefinition = "text")
     var bio: String? = null
 
-    @Lob
-    var pfp: ByteArray? = null
+    @Column(columnDefinition = "text")
+    var pfp: String? = null
 
     @Column(nullable = false)
     var isBot: Boolean = false
@@ -108,36 +80,41 @@ class User {
     var handle: String? = null
 
     constructor(
-        name: String?,
+        firstName: String?,
+        lastName: String? = "",
         bio: String?,
-        pfp: ByteArray?,
+        pfp: String?,
         isBot: Boolean,
         isWizarding: Boolean,
         email: String?,
         password: String?
     ) {
-        this.name = name
+        this.firstName = firstName
+        this.lastName = lastName
         this.bio = bio
         this.pfp = pfp
         this.isBot = isBot
         this.isWizarding = isWizarding
         this.email = email
         this.password = password
-        handle = name!!.replace(" ", "")
+        handle = firstName!!.replace(" ", "") + lastName!!.replace(" ", "")
     }
 
     constructor()
+
     constructor(
-        name: String?,
+        firstName: String?,
+        lastName: String?,
         bio: String?,
-        pfp: ByteArray?,
+        pfp: String?,
         isBot: Boolean,
         isWizarding: Boolean,
         email: String?,
         password: String?,
         handle: String?
     ) {
-        this.name = name
+        this.firstName = firstName
+        this.lastName = lastName
         this.bio = bio
         this.pfp = pfp
         this.isBot = isBot
@@ -148,4 +125,56 @@ class User {
     }
 
 
+    override fun toString(): String {
+        return "{id:$id, firstName:$firstName, lastName:${lastName}, bio={in database}, pfp={masked}, isBot=$isBot, isWizarding=$isWizarding, email=$email, password=$password, friends=$friends, handle=$handle)"
+    }
+}
+
+@Entity
+@Table(name = "characterState")
+data class AICharacterState(
+    @OneToOne
+    @JoinColumn("user_id")
+    val user: User,
+    var status: CharacterState = CharacterState.busy,
+    var energy: Float = 1.0f,
+    var mood: String = "Happy",
+    var currentlyDoing: String = ""
+) {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    var id: Long? = null
+}
+
+@Entity
+@Table(name = "notifications")
+class Notification {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    var id: Long? = null
+
+    var timeSent: Instant = Instant.now()
+
+    var title: String = ""
+    var body: String = ""
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    var user: User? = null
+
+    constructor() {
+        this.timeSent = Instant.now()
+    }
+
+    constructor(
+        title: String,
+        body: String,
+        user: User
+    ) {
+        this.timeSent = Instant.now()
+        this.user = user
+        this.title = title
+        this.body = body
+        this.timeSent = Instant.now()
+    }
 }

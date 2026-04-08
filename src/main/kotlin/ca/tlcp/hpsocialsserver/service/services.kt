@@ -25,20 +25,28 @@ class OAuthUserProvisioningService(
         email: String,
         givenName: String?,
         lastName: String?,
+        pfp: String?
     ) {
         if (repo.existsUserByEmail(email)) return
 
         println("Given Name: $givenName, Last Name: $lastName")
 
+        val safeGiven = givenName?.replace(" ", "")?.takeIf { it.isNotBlank() }
+        val safeLast = lastName?.replace(" ", "")?.takeIf { it.isNotBlank() } ?: ""
+
+        val fallback = email.substringBefore("@")
+        val handle = ((safeGiven ?: fallback) + safeLast).lowercase()
+
         val user = User(
             email = email,
-            password = "",
-            name = "$givenName $lastName",
+            password = "oauth2",
+            firstName = safeGiven,
+            lastName = safeLast,
             bio = "",
-            pfp = null,
+            pfp = pfp,
             isBot = false,
             isWizarding = false,
-            handle = givenName!!.replace(" ", "") + lastName!!.replace(" ", "")
+            handle = handle
         )
 
         repo.save(user)
@@ -54,14 +62,7 @@ class CustomUserDetailsService(val repo: UserRepository) : UserDetailsService {
         if (repo.existsUserByEmail(usernameOrEmail)) {
             val user = repo.getUserByEmail(usernameOrEmail).get().toUserDetails()
             println("User found with email: $usernameOrEmail")
-            println("password: ${user.password}")
-
-            // For debugging: Manually check the password match
-            val encoder = BCryptPasswordEncoder(12)
-            val isPasswordValid = encoder.matches("Password", user.password)  // replace with actual entered password
-            println("Password matches: $isPasswordValid")
-
-            return user
+          return user
 
         } else {
             throw UsernameNotFoundException("User not found: $usernameOrEmail")
@@ -79,34 +80,14 @@ class CustomOAuth2UserService(
         val oauth2User = delegate.loadUser(userRequest)
 
         val email = oauth2User.attributes["email"] as String
-
+        println(oauth2User.attributes)
         provisioningService.provisionUser(
             email = email,
             givenName = oauth2User.attributes["given_name"] as? String,
-            lastName = oauth2User.attributes["family_name"] as? String
+            lastName = oauth2User.attributes["family_name"] as? String,
+            pfp = oauth2User.attributes["picture"] as? String,
         )
 
         return oauth2User
     }
 }
-
-// For OpenID implementations if that ever becomes a part of the login sequence.
-//@Service
-//class CustomOidcUserService(
-//    private val provisioningService: OAuthUserProvisioningService
-//) : OidcUserService() {
-//
-//    override fun loadUser(userRequest: OidcUserRequest): OidcUser {
-//        val oidcUser = super.loadUser(userRequest)
-//
-//        val email = oidcUser.email
-//            ?: throw IllegalStateException("OIDC user has no email")
-//
-//        provisioningService.provisionUser(
-//            email = email,
-//            givenName = oidcUser!!.givenName
-//        )
-//
-//        return oidcUser
-//    }
-//}

@@ -1,26 +1,25 @@
 package ca.tlcp.hpsocialsserver.api.controllers
 
-import ca.tlcp.hpsocialsserver.api.CommentDetails
 import ca.tlcp.hpsocialsserver.api.PostDetails
-import ca.tlcp.hpsocialsserver.db.*
+import ca.tlcp.hpsocialsserver.api.getuserID
+import ca.tlcp.hpsocialsserver.api.notifyAll
+import ca.tlcp.hpsocialsserver.db.NotificationRepository
+import ca.tlcp.hpsocialsserver.db.Post
+import ca.tlcp.hpsocialsserver.db.PostRepository
+import ca.tlcp.hpsocialsserver.db.User
+import ca.tlcp.hpsocialsserver.db.UserRepository
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.security.crypto.password.PasswordEncoder
-import org.springframework.security.oauth2.core.user.OAuth2User
 import org.springframework.web.bind.annotation.*
 
-
-typealias SpringUserDetails = org.springframework.security.core.userdetails.UserDetails
-
-data class UserRegistrationRequest(
-    val name: String,
-    val email: String,
-    val password: String,
-)
 
 @RestController
 @RequestMapping("/api/post")
 class PostController {
+
+    @Autowired
+    private lateinit var notificationRepository: NotificationRepository
 
     @Autowired
     private val userRepository: UserRepository? = null
@@ -29,17 +28,37 @@ class PostController {
     private val postRepository: PostRepository? = null
 
     @Autowired
-    private val commentRepository: CommentRepository? = null
-
-    @Autowired
     private val passwordEncoder: PasswordEncoder? = null
 
+    @GetMapping(path = ["/feed"])
+    fun feed(): List<PostDetails?> {
+        return postRepository!!.findAll().filter { post: Post ->
+            post.parent == null
+        }.map { post: Post ->
+            PostDetails(post, userRepository!!)
+        }.reversed()
+    }
 
+    @GetMapping("user/{handle}")
+    fun getPosts(@PathVariable handle: String): List<PostDetails> {
+        val user = userRepository!!.getUserByHandle(handle).get()
+        return postRepository!!.getAllByUser(user).map { post: Post ->
+            PostDetails(post, userRepository)
+        }
+    }
 
-    @GetMapping
-    fun getPost(@RequestParam(name = "id") id: Long): PostDetails {
+    @GetMapping()
+    fun getUserPosts(@AuthenticationPrincipal user: Any): List<PostDetails> {
+        val currentUser = userRepository!!.getUserByEmail(getuserID(user)).get()
+        return postRepository!!.getAllByUser(currentUser).map { comment: Post ->
+            PostDetails(comment, userRepository!!)
+        }.reversed()
+    }
+
+    @GetMapping("/{id}")
+    fun getPost(@PathVariable id: Long): PostDetails {
         println("ID: $id")
-        return PostDetails(postRepository?.findById(id)!!.get())
+        return PostDetails(postRepository?.findById(id)!!.get(), userRepository!!)
     }
 
     @PostMapping(path = ["/add"])
@@ -47,45 +66,43 @@ class PostController {
         @RequestParam body: String?,
         @AuthenticationPrincipal user: Any
     ): Boolean {
-        println(body)
-
-        val email = when (user) {
-            is SpringUserDetails ->
-                user.username
-
-            is OAuth2User ->
-                user.attributes["email"] as String
-
-            else -> throw IllegalStateException("Unknown principal type")
-        }
-
+        val email = getuserID(user)
+        val sender: User = userRepository?.getUserByEmail(email)!!.get()
         postRepository?.save(
-            Post(body, null, userRepository?.getUserByEmail(email)?.get())
+            Post(
+                body = body,
+                user = sender
+            )
+        )
+        notifyAll(
+            currentUser = sender!!,
+            sentBy = sender.firstName!!,
+            userRepo = userRepository,
+            ntfyRepo = notificationRepository,
+            body = body!!
         )
         return true
     }
 
-    @GetMapping(path = ["/getComments/{pID}"])
-    fun getComments(@PathVariable pID: Long): MutableList<CommentDetails?> {
-        val details: MutableList<CommentDetails?> = ArrayList<CommentDetails?>()
+    @DeleteMapping("/{id}")
+    fun deletePost(@PathVariable id: Long, @AuthenticationPrincipal user: Any): Boolean {
+        val email = getuserID(user)
         try {
-            for (comment in commentRepository?.getAllByPost(
-                postRepository?.findById(pID)!!.get()
-            )!!) {
-                details.add(CommentDetails(comment!!))
+            val post: Post = postRepository!!.findById(id)!!.get()
+            if (post.user!!.email == email) {
+                val childPosts: List<Post> = postRepository!!.getAllByParent(post)
+                childPosts.forEach { childPost: Post ->
+                    postRepository.delete(childPost)
+                }
+                postRepository.delete(post)
+                return true
+            } else {
+                error("User: ${post.user!!.handle} tried to delete a post (${post.id}) they didn't make")
+                return false
             }
-        } catch (e: NoSuchElementException) {
+        } catch (e: Exception) {
             e.printStackTrace()
+            return false
         }
-        return details
     }
-
-//    private fun addTMPPost() {
-//        val user: User? = userRepository.getUserByUsername("harrypotter").get()
-//        val post = Post()
-//        post.body = "Hello Everyone! How's life everything good? The Ministry finally chucked Umbridge in prison"
-//        post.user = user
-//        postRepository.save(post)
-//        println("Temp post added.")
-//    }
 }
