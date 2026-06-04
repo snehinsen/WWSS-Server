@@ -6,13 +6,9 @@ import ca.tlcp.hpsocialsserver.toolchain.toUserDetails
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.core.userdetails.UsernameNotFoundException
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
-import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest
-import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService
-import org.springframework.security.oauth2.core.oidc.user.OidcUser
 import org.springframework.security.oauth2.core.user.OAuth2User
 import org.springframework.stereotype.Service
 
@@ -57,15 +53,13 @@ class OAuthUserProvisioningService(
 
 @Service
 class CustomUserDetailsService(val repo: UserRepository) : UserDetailsService {
-    override fun loadUserByUsername(usernameOrEmail: String): UserDetails {
+    override fun loadUserByUsername(email: String): UserDetails {
 
-        if (repo.existsUserByEmail(usernameOrEmail)) {
-            val user = repo.getUserByEmail(usernameOrEmail).get().toUserDetails()
-            println("User found with email: $usernameOrEmail")
+        if (repo.existsUserByEmail(email)) {
+            val user = repo.getUserByEmail(email).get().toUserDetails()
           return user
-
         } else {
-            throw UsernameNotFoundException("User not found: $usernameOrEmail")
+            throw UsernameNotFoundException("User not found: $email")
         }
     }
 }

@@ -1,6 +1,7 @@
 package ca.tlcp.hpsocialsserver.api
 
 import ca.tlcp.hpsocialsserver.CharacterState
+import ca.tlcp.hpsocialsserver.ChatType
 import ca.tlcp.hpsocialsserver.db.*
 import java.time.Instant
 
@@ -14,6 +15,7 @@ data class UserDetails(
     val email: String?,
     val isWizarding: Boolean?,
     val isBot: Boolean?,
+    var role: String = "USER",
 ) {
     constructor(user: User, userRepository: UserRepository) : this(
         firstName = user.firstName,
@@ -30,17 +32,30 @@ data class UserDetails(
     )
 }
 
+data class FriendRequestDetails(
+    val id: Long,
+    val sender: UserDetails,
+    val receiver: UserDetails,
+    val timeSent: Instant = Instant.now(),
+) {
+    constructor(request: FriendRequest, userRepo: UserRepository) : this(
+        id = request.id!!,
+        sender = UserDetails(request.sender!!, userRepo),
+        receiver = UserDetails(request.receiver!!, userRepo),
+    )
+}
+
 data class PostDetails(
     val id: Long,
     val user: UserDetails?,
     val body: String?,
-    val attachedImages: List<PostImage>
+    val attachedMedia: List<String>
 ) {
     constructor(post: Post, userRepo: UserRepository) : this(
         id = post.id!!,
         user = UserDetails(post.user!!, userRepo),
         body = post.body,
-        attachedImages = post.attachedImages ?: emptyList()
+        attachedMedia = post.attachedMedia ?: emptyList()
     )
 }
 
@@ -82,3 +97,68 @@ data class CharacterStateDetails(
         """
     }
 }
+
+data class ChatThreadDetails(
+    val id: Long,
+    val owner: UserDetails,
+    var otherMembers: MutableList<UserDetails> = mutableListOf(),
+    var title: String = "",
+    val threadType: ChatType
+) {
+    constructor(chatThread: ChatThread, userRepo: UserRepository) : this(
+        owner = UserDetails(chatThread.owner, userRepo),
+        id = chatThread.id!!,
+        title = chatThread.title,
+        otherMembers = chatThread.otherMembers.map { member: User ->
+            UserDetails(member, userRepo)
+        } as MutableList<UserDetails>,
+        threadType = chatThread.threadType,
+
+    )
+}
+
+// WebSocket Message DTOs
+data class WebSocketMessageRequest(
+    val content: String,
+    val attachmentUrls: List<String> = emptyList(),
+    val threadId: Long
+)
+
+data class WebSocketMessageResponse(
+    val id: Long,
+    val senderId: Long,
+    val senderHandle: String,
+    val senderName: String,
+    val senderPfp: String?,
+    val threadId: Long,
+    val content: String,
+    val attachmentUrls: List<String> = emptyList(),
+    val timestamp: Instant = Instant.now(),
+    val messageType: String = "MESSAGE" // MESSAGE, TYPING, JOINED, LEFT
+) {
+    constructor(message: DMMessage, userRepo: UserRepository) : this(
+        id = message.id!!,
+        senderId = message.sender.id!!,
+        senderHandle = message.sender.handle!!,
+        senderName = "${message.sender.firstName} ${message.sender.lastName}",
+        senderPfp = message.sender.pfp,
+        threadId = message.thread.id!!,
+        content = message.content,
+        attachmentUrls = message.attachmentUrls,
+        timestamp = message.timestamp
+    )
+}
+
+data class TypingIndicator(
+    val threadId: Long,
+    val userId: Long,
+    val userHandle: String,
+    val isTyping: Boolean
+)
+
+data class ThreadMemberUpdate(
+    val threadId: Long,
+    val userId: Long,
+    val userHandle: String,
+    val action: String // JOINED, LEFT
+)

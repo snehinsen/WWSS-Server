@@ -18,9 +18,15 @@ class ForwardController {
     }
 
     @GetMapping(value = ["/app/**", "/app/*/**", "/app/*/*/**", "/app/*/*/*/**"])
-    fun forward(): String {
+    fun forwardUserUI(): String {
 
         return "forward:/index.html"
+    }
+
+    @GetMapping(value = ["/admin/**", "/admin/*/**", "/admin/*/*/**", "/admin/*/*/*/**"])
+    fun forwardAdminUI(): String {
+
+        return "forward:/admin.html"
     }
 
 }

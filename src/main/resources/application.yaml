@@ -32,8 +32,20 @@ spring:
   web:
     error:
       path: /error
-      
 
+  ai:
+    anthropic:
+      api-key: ${ANTHROPIC_API_KEY}
+      model: sonnet-4
+      chat:
+        options:
+          cache-options:
+            enabled: false
+          max-tokens: 2048
+    ollama:
+      base-url: https://wwss-ai.sanjaysen.me
+      chat:
+        model: qwen3.5:latest
 
 
 server:
@@ -45,7 +57,7 @@ server:
       remote-ip-header: x-forwarded-for
       host-header: x-forwarded-host
 
-logging:
-  level:
-    web: trace
-    sql: trace
+#logging:
+#  level:
+#    web: trace
+#    sql: trace

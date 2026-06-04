@@ -25,11 +25,16 @@ import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBr
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer
 
+val allowedOrigins = listOf(
+    "http://localhost:8589",
+    "http://localhost:5172", // Admin frontend dev server
+    "http://localhost:5173", // User frontend dev server
+    "https://wwss-dev.sanjaysen.me", // User frontend dev server, tunneled
+)
 
 @Configuration
 @EnableWebSecurity
-class SecurityConfig(
-) {
+class SecurityConfig {
 
 
     @Bean
@@ -56,13 +61,7 @@ class SecurityConfig(
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
         val config = CorsConfiguration()
-        config.allowedOrigins = listOf(
-            "http://localhost:3000",
-            "http://localhost:3001",
-            "http://localhost:3002",
-            "http://localhost:8589",
-            "http://localhost:5173"
-        )
+        config.allowedOrigins = allowedOrigins
         config.allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
         config.allowedHeaders = listOf("*")
         config.allowCredentials = true
@@ -115,7 +114,13 @@ class SecurityConfig(
                         "/**/*.html",
                         "/favicon.ico"
                     ).permitAll()
-                    .anyRequest().authenticated()
+                    .requestMatchers(
+                        "/api/admin/**",
+                        "/admin/**"
+                    )
+                    .hasRole("ADMIN")
+                    .anyRequest()
+                    .authenticated()
             }
             // For frontend dev only for now.
             .httpBasic(Customizer.withDefaults())
@@ -173,16 +178,23 @@ class SecurityConfig(
 
 @Configuration
 @EnableWebSocketMessageBroker
-class WebSocketConfig: WebSocketMessageBrokerConfigurer {
-     override fun registerStompEndpoints(registry: StompEndpointRegistry) {
+class WebSocketConfig : WebSocketMessageBrokerConfigurer {
+
+    override fun configureMessageBroker(config: MessageBrokerRegistry) {
+        // Enable a simple message broker to carry messages between clients
+        // The "/app" prefix is used for messages going to @MessageMapping handlers
+        // The "/topic" prefix is used for messages that should be broadcast to all subscribers
+        config.enableSimpleBroker("/topic", "/queue")
+        config.setApplicationDestinationPrefixes("/app")
+        config.setUserDestinationPrefix("/user")
+    }
+
+    override fun registerStompEndpoints(registry: StompEndpointRegistry) {
+        // Register the WebSocket endpoint
+        // Clients will connect to /ws to establish the WebSocket connection
         registry
             .addEndpoint("/ws")
+            .setAllowedOriginPatterns("*")
             .withSockJS()
     }
-
-     override fun configureMessageBroker(registry: MessageBrokerRegistry) {
-        registry.enableSimpleBroker("/topic", "/queue")
-        registry.setApplicationDestinationPrefixes("/app")
-    }
-
 }

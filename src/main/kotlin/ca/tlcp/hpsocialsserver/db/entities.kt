@@ -1,21 +1,9 @@
 package ca.tlcp.hpsocialsserver.db
 
 import ca.tlcp.hpsocialsserver.CharacterState
+import ca.tlcp.hpsocialsserver.ChatType
 import jakarta.persistence.*
 import java.time.Instant
-
-
-@Entity
-@Table(name = "images")
-data class PostImage(
-
-    @Lob
-    var data: String? = null,
-) {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    var id: Long? = null
-}
 
 
 @Entity
@@ -32,9 +20,7 @@ data class Post(
     @JoinColumn(name = "user_id", nullable = false)
     var user: User? = null,
 
-    @OneToMany
-    @JoinColumn(name = "images_id")
-    var attachedImages: MutableList<PostImage> = mutableListOf() // Images attached to this post
+    var attachedMedia: MutableList<String> = mutableListOf() // Images attached to this post
 ) {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -131,6 +117,22 @@ class User {
 }
 
 @Entity
+@Table(name = "friendRequests")
+data class FriendRequest(
+    @ManyToOne
+    @JoinColumn(name = "sender_id", nullable = false)
+    val sender: User,
+    @ManyToOne
+    @JoinColumn(name = "receiver_id", nullable = false)
+    val receiver: User,
+    var status: String = "pending" // pending, accepted, rejected
+) {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    var id: Long? = null
+}
+
+@Entity
 @Table(name = "characterState")
 data class AICharacterState(
     @OneToOne
@@ -167,7 +169,7 @@ class Notification {
     }
 
     constructor(
-        title: String,
+        tittle: String,
         body: String,
         user: User
     ) {
@@ -177,4 +179,85 @@ class Notification {
         this.body = body
         this.timeSent = Instant.now()
     }
+}
+
+@Entity
+@Table(name = "chats")
+data class ChatThread(
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "owner_id")
+    val owner: User,
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+        name = "chat_thread_members",
+        joinColumns = [JoinColumn(name = "thread_id")],
+        inverseJoinColumns = [JoinColumn(name = "user_id")]
+    )
+    var otherMembers: MutableList<User> = mutableListOf(),
+
+    var title: String = "",
+
+    @Enumerated(EnumType.STRING)
+    val threadType: ChatType,
+
+    @OneToMany(
+        mappedBy = "thread",
+        cascade = [CascadeType.ALL],
+        orphanRemoval = true
+    )
+    val messages: MutableList<DMMessage> = mutableListOf()
+) {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long? = null
+}
+
+@Entity
+@Table(name = "dm_messages")
+data class DMMessage(
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "sender_id")
+    val sender: User,
+
+    @Column(columnDefinition = "TEXT")
+    var content: String,
+
+    @ElementCollection
+    @CollectionTable(
+        name = "dm_message_attachments",
+        joinColumns = [JoinColumn(name = "message_id")]
+    )
+    @Column(name = "attachment_url")
+    val attachmentUrls: List<String> = emptyList(),
+
+    var timestamp: Instant = Instant.now(),
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "thread_id")
+    val thread: ChatThread
+) {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long? = null
+}
+
+@Entity
+@Table(name = "character_memories")
+data class CharacterMemoru(
+    @Column(columnDefinition = "TEXT")
+    var content: String = "",
+    @ManyToOne
+    @JoinColumn(name = "character_id")
+    val character: User,
+    val label: String = "",
+    var timestamp: Instant = Instant.now(),
+) {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long? = null
 }

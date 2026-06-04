@@ -1,7 +1,7 @@
 package ca.tlcp.hpsocialsserver.api.controllers
 
 import ca.tlcp.hpsocialsserver.api.PostDetails
-import ca.tlcp.hpsocialsserver.api.getuserID
+import ca.tlcp.hpsocialsserver.api.getUserID
 import ca.tlcp.hpsocialsserver.api.notifyAll
 import ca.tlcp.hpsocialsserver.db.NotificationRepository
 import ca.tlcp.hpsocialsserver.db.Post
@@ -49,7 +49,7 @@ class PostController {
 
     @GetMapping()
     fun getUserPosts(@AuthenticationPrincipal user: Any): List<PostDetails> {
-        val currentUser = userRepository!!.getUserByEmail(getuserID(user)).get()
+        val currentUser = userRepository!!.getUserByEmail(getUserID(user)).get()
         return postRepository!!.getAllByUser(currentUser).map { comment: Post ->
             PostDetails(comment, userRepository!!)
         }.reversed()
@@ -66,7 +66,7 @@ class PostController {
         @RequestParam body: String?,
         @AuthenticationPrincipal user: Any
     ): Boolean {
-        val email = getuserID(user)
+        val email = getUserID(user)
         val sender: User = userRepository?.getUserByEmail(email)!!.get()
         postRepository?.save(
             Post(
@@ -86,7 +86,7 @@ class PostController {
 
     @DeleteMapping("/{id}")
     fun deletePost(@PathVariable id: Long, @AuthenticationPrincipal user: Any): Boolean {
-        val email = getuserID(user)
+        val email = getUserID(user)
         try {
             val post: Post = postRepository!!.findById(id)!!.get()
             if (post.user!!.email == email) {

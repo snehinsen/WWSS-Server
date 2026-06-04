@@ -1,7 +1,7 @@
 package ca.tlcp.hpsocialsserver.api.controllers
 
 import ca.tlcp.hpsocialsserver.api.PostDetails
-import ca.tlcp.hpsocialsserver.api.getuserID
+import ca.tlcp.hpsocialsserver.api.getUserID
 import ca.tlcp.hpsocialsserver.api.notifyAll
 import ca.tlcp.hpsocialsserver.db.NotificationRepository
 import ca.tlcp.hpsocialsserver.db.Post
@@ -29,7 +29,7 @@ class CommentsController(
     fun postComment(@PathVariable pid: Long, @RequestParam body: String, @AuthenticationPrincipal user: Any): Boolean {
         if (body.isBlank()) return false
         return try {
-            val sender: User = userRepository!!.getUserByEmail(getuserID(user)).get()
+            val sender: User = userRepository!!.getUserByEmail(getUserID(user)).get()
             val post: Post = postRepository!!.findById(pid).get()
             val theComment = Post(
                 parent = post,

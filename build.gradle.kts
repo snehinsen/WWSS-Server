@@ -26,6 +26,8 @@ repositories {
     mavenCentral()
 }
 
+extra["springAiVersion"] = "2.0.0-M4"
+
 dependencies {
     implementation("io.github.cdimascio:dotenv-kotlin:6.5.1")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
@@ -38,7 +40,6 @@ dependencies {
     implementation("io.ktor:ktor-client-cio:2.3.9")
     implementation("io.ktor:ktor-client-content-negotiation:2.3.9")
     implementation("io.ktor:ktor-serialization-jackson:2.3.9")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.17.0")
 
     compileOnly("org.projectlombok:lombok")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
@@ -46,10 +47,10 @@ dependencies {
     runtimeOnly("org.postgresql:postgresql")
     annotationProcessor("org.projectlombok:lombok")
     implementation("org.springframework.boot:spring-boot-starter-websocket")
-
-    implementation("dev.langchain4j:langchain4j-ollama:1.12.2")
-    implementation("dev.langchain4j:langchain4j:1.12.2")
     implementation("org.jsoup:jsoup:1.22.1")
+    implementation("org.springframework.ai:spring-ai-starter-model-anthropic:2.0.0-M4")
+    implementation("org.springframework.ai:spring-ai-starter-model-ollama:2.0.0-M4")
+    implementation("org.springframework.boot:spring-boot-starter-restclient")
 
 
     // test implementations

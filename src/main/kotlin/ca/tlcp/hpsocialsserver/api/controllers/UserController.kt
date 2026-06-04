@@ -1,7 +1,7 @@
 package ca.tlcp.hpsocialsserver.api.controllers
 
 import ca.tlcp.hpsocialsserver.api.UserDetails
-import ca.tlcp.hpsocialsserver.api.getuserID
+import ca.tlcp.hpsocialsserver.api.getUserID
 import ca.tlcp.hpsocialsserver.db.User
 import ca.tlcp.hpsocialsserver.db.UserRepository
 import ca.tlcp.hpsocialsserver.fs.PFPEntity
@@ -52,16 +52,17 @@ class UserController {
     fun me(
         @AuthenticationPrincipal user: Any
     ): UserDetails {
-        val email = getuserID(user)
+        val email = getUserID(user)
 
         val selectedUser: User = userRepository!!.getUserByEmail(email)!!.get()
 
         return UserDetails(selectedUser, userRepository!!)
     }
 
+
     @GetMapping(path = ["/search"])
     fun getFiltered(@AuthenticationPrincipal user: Any, @RequestParam(name = "q") query: String): List<UserDetails> {
-        val email = getuserID(user)
+        val email = getUserID(user)
         var users: List<User> = userRepository!!.findAll().filter {
             !it.email.equals(email)
         }
@@ -123,7 +124,7 @@ class UserController {
         @RequestBody request: UserCustomizerRequest,
         @AuthenticationPrincipal user: Any
     ): Boolean {
-        val email = getuserID(user)
+        val email = getUserID(user)
 
         println("Configuring user with email: $email, handle: ${request.handle}, isWizarding: ${request.isWizarding}")
         try {
@@ -144,7 +145,7 @@ class UserController {
         @RequestParam(value = "file") pfp: MultipartFile,
         @AuthenticationPrincipal user: Any
     ): Boolean {
-        val email = getuserID(user)
+        val email = getUserID(user)
         try {
             val selectedUser: User? = userRepository?.getUserByEmail(email)?.orElse(null)
 
@@ -171,7 +172,7 @@ class UserController {
 
     @GetMapping(path = ["/handleCheck"])
     fun handleCheck(@RequestParam handle: String = "", @AuthenticationPrincipal user: Any): Boolean {
-        val currentUser: User = userRepository!!.getUserByEmail(getuserID(user)).get()
+        val currentUser: User = userRepository!!.getUserByEmail(getUserID(user)).get()
 
         return if (currentUser.handle != handle) !userRepository!!.existsUserByHandle(handle) else true
 
@@ -194,23 +195,23 @@ class UserController {
 
     @GetMapping("/pfp/{handle}")
     fun getPicture(@PathVariable handle: String): ResponseEntity<FileSystemResource> {
-       try {
-           val selectedUser = userRepository!!.getUserByHandle(handle).get()
+        try {
+            val selectedUser = userRepository!!.getUserByHandle(handle).get()
 
-           val file = PFPEntity().getObject(selectedUser.handle!!)
+            val file = PFPEntity().getObject(selectedUser.handle!!)
 
-           val resource = FileSystemResource(file)
+            val resource = FileSystemResource(file)
 
-           val contentType = Files.probeContentType(file.toPath())
+            val contentType = Files.probeContentType(file.toPath())
 
-           return ResponseEntity.ok()
-               .contentType(MediaType.parseMediaType(contentType))
-               .body(resource)
-       } catch (e: Exception) {
-           println("Error getting profile for handle '$handle': ${e.message}")
-           e.printStackTrace()
-           return ResponseEntity.badRequest().body(FileSystemResource(""))
-       }
+            return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(contentType))
+                .body(resource)
+        } catch (e: Exception) {
+            println("Error getting profile for handle '$handle': ${e.message}")
+            e.printStackTrace()
+            return ResponseEntity.badRequest().body(FileSystemResource(""))
+        }
     }
 
 

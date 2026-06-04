@@ -1,8 +1,7 @@
 package ca.tlcp.hpsocialsserver.api.controllers
 
 import ca.tlcp.hpsocialsserver.api.NotificationDetails
-import ca.tlcp.hpsocialsserver.api.getuserID
-import ca.tlcp.hpsocialsserver.db.Notification
+import ca.tlcp.hpsocialsserver.api.getUserID
 import ca.tlcp.hpsocialsserver.db.NotificationRepository
 import ca.tlcp.hpsocialsserver.db.User
 import ca.tlcp.hpsocialsserver.db.UserRepository
@@ -32,7 +31,7 @@ class NotificationController {
         @AuthenticationPrincipal user: Any
     ): List<NotificationDetails> {
 
-        val email = getuserID(user)
+        val email = getUserID(user)
 
         val selectedUser: User = userRepository!!.getUserByEmail(email)!!.get()
 
