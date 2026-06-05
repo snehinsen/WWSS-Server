@@ -16,6 +16,7 @@ data class UserDetails(
     val isWizarding: Boolean?,
     val isBot: Boolean?,
     var role: String = "USER",
+    val id: Long
 ) {
     constructor(user: User, userRepository: UserRepository) : this(
         firstName = user.firstName,
@@ -28,7 +29,8 @@ data class UserDetails(
         handle = user.handle,
         email = user.email,
         isWizarding = user.isWizarding,
-        isBot = user.isBot
+        isBot = user.isBot,
+        id = user.id!!
     )
 }
 
@@ -114,7 +116,7 @@ data class ChatThreadDetails(
         } as MutableList<UserDetails>,
         threadType = chatThread.threadType,
 
-    )
+        )
 }
 
 // WebSocket Message DTOs

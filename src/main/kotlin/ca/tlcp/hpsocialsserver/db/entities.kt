@@ -175,7 +175,7 @@ class Notification {
     ) {
         this.timeSent = Instant.now()
         this.user = user
-        this.title = title
+        this.title = tittle
         this.body = body
         this.timeSent = Instant.now()
     }

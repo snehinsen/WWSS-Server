@@ -218,16 +218,17 @@ class DMController {
     }
 
 
-    @PostMapping("/join")
-    fun joinThread(
-        @AuthenticationPrincipal loggedInUser: Any,
+    @PostMapping("/add")
+    fun addMembers(
+        @RequestBody handles: List<String>,
         @RequestParam threadId: Long,
     ): Boolean {
         return try {
-            val email: String = getUserID(loggedInUser)
-            val user = userRepository!!.getUserByEmail(email).get()
             val thread = chatThreadRepository!!.findById(threadId).get()
-            thread.otherMembers.add(user)
+            handles.map { handle ->
+                val user = userRepository!!.getUserByHandle(handle).get()
+                thread.otherMembers.add(user)
+            }
             chatThreadRepository!!.save(thread)
             true
         } catch (e: Exception) {
@@ -259,16 +260,49 @@ class DMController {
         }
     }
 
-    @DeleteMapping("/delete")
-    fun deleteThread(
+    @DeleteMapping("/rm")
+    fun removeMember(
         @AuthenticationPrincipal loggedInUser: Any,
         @RequestParam threadId: Long,
+        @RequestParam(name="userId") memberId: Long
     ): Boolean {
         return try {
             val email: String = getUserID(loggedInUser)
             val user = userRepository!!.getUserByEmail(email).get()
             val thread = chatThreadRepository!!.findById(threadId).get()
             if (thread.owner != user) {
+                // This part should never happen, but a safety check all the same.
+                System.err.println("Only the owner can remove members.")
+                false
+            } else {
+                val memberToRemove = thread.otherMembers.find { it.id == memberId }
+                if (memberToRemove == null) {
+                    // This part should never happen, but a safety check all the same.
+                    System.err.println("Member not found in this thread.")
+                    false
+                } else {
+                    thread.otherMembers.remove(memberToRemove)
+                    chatThreadRepository!!.save(thread)
+                    true
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    @DeleteMapping("/{threadId}")
+    fun deleteThread(
+        @AuthenticationPrincipal loggedInUser: Any,
+        @PathVariable threadId: Long,
+    ): Boolean {
+        return try {
+            val email: String = getUserID(loggedInUser)
+            val user = userRepository!!.getUserByEmail(email).get()
+            val thread = chatThreadRepository!!.findById(threadId).get()
+            if (thread.owner != user) {
+                // Ths part should never happen, but a safety check all the same.
                 System.err.println("User is not the owner of this thread.")
                 false
             } else {
@@ -282,7 +316,6 @@ class DMController {
                     )
                 }
                 chatThreadRepository.delete(thread)
-
                 true
             }
         } catch (e: Exception) {

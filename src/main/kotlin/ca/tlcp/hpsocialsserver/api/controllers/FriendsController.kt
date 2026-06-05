@@ -179,7 +179,7 @@ class FriendsController {
         }
     }
 
-    @GetMapping(path = ["/rm"])
+    @DeleteMapping(path = ["/rm"])
     fun removeFriend(@RequestParam handle: String, @AuthenticationPrincipal user: Any): Boolean {
         return try {
             val email = getUserID(user)
