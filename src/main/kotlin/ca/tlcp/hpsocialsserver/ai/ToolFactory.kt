@@ -12,7 +12,8 @@ class ToolFactory(
     private val characterMemoryRepository: CharacterMemoryRepository,
     private val notificationRepository: NotificationRepository,
     private val userRepository: UserRepository,
-    private val friendRequestRepository: FriendRequestRepository
+    private val friendRequestRepository: FriendRequestRepository,
+    private val postRepository: PostRepository,
 ) {
 
     fun createPostTools(
@@ -40,7 +41,8 @@ class ToolFactory(
             notificationRepository = notificationRepository,
             taskDetails = taskDetails,
             friendRequestRepository = friendRequestRepository,
-            userRepository = userRepository
+            userRepository = userRepository,
+            postRepository = postRepository,
         )
     }
 }

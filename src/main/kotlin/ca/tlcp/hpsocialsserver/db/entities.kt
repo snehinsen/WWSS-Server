@@ -20,7 +20,9 @@ data class Post(
     @JoinColumn(name = "user_id", nullable = false)
     var user: User? = null,
 
-    var attachedMedia: MutableList<String> = mutableListOf() // Images attached to this post
+    var attachedMedia: MutableList<String> = mutableListOf(), // Images attached to this post
+
+    var likedBy: MutableList<Long> = mutableListOf() // List of user IDs who liked this post Full user objects are not equired.
 ) {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -65,6 +67,9 @@ class User {
     @Column(unique = true, nullable = false)
     var handle: String? = null
 
+    @Column(name = "is_setup")
+    var isSetup: Boolean = true
+
     constructor(
         firstName: String?,
         lastName: String? = "",
@@ -73,7 +78,8 @@ class User {
         isBot: Boolean,
         isWizarding: Boolean,
         email: String?,
-        password: String?
+        password: String?,
+        isSetup: Boolean
     ) {
         this.firstName = firstName
         this.lastName = lastName
@@ -84,6 +90,7 @@ class User {
         this.email = email
         this.password = password
         handle = firstName!!.replace(" ", "") + lastName!!.replace(" ", "")
+        this.isSetup = isSetup
     }
 
     constructor()
@@ -97,7 +104,8 @@ class User {
         isWizarding: Boolean,
         email: String?,
         password: String?,
-        handle: String?
+        handle: String?,
+        isSetup: Boolean = true
     ) {
         this.firstName = firstName
         this.lastName = lastName
@@ -108,6 +116,7 @@ class User {
         this.email = email
         this.password = password
         this.handle = handle
+        this.isSetup = isSetup
     }
 
 
@@ -156,7 +165,7 @@ class Notification {
     var id: Long? = null
 
     var timeSent: Instant = Instant.now()
-
+    @Column(name = "title", columnDefinition = "text")
     var title: String = ""
     var body: String = ""
 

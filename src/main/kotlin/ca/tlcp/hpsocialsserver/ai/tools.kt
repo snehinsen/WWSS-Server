@@ -2,6 +2,7 @@ package ca.tlcp.hpsocialsserver.ai
 
 import ca.tlcp.hpsocialsserver.api.FriendRequestDetails
 import ca.tlcp.hpsocialsserver.api.NotificationDetails
+import ca.tlcp.hpsocialsserver.api.PostDetails
 import ca.tlcp.hpsocialsserver.api.UserDetails
 import ca.tlcp.hpsocialsserver.api.controllers.AIController
 import ca.tlcp.hpsocialsserver.db.*
@@ -155,6 +156,7 @@ class TaskTools(
     private val notificationRepository: NotificationRepository,
     private val friendRequestRepository: FriendRequestRepository,
     private val userRepository: UserRepository,
+    private val postRepository: PostRepository,
     val taskDetails: AIController.TaskCompletionDetails
 ) : UniversalToolSet(
     character,
@@ -187,7 +189,7 @@ class TaskTools(
 
     @Tool(
         name = "clearNotification",
-        description = "Clear a notification by its ID."
+        description = "Clear a notification by its ID. Use to ignore or complete something related to a notification."
     )
     fun clearNotification(@ToolParam(description = "the ID of the notification intended to be cleared") id: Long): Boolean {
 
@@ -202,6 +204,31 @@ class TaskTools(
                 error = e.stackTraceToString()
             )
             false
+        }
+    }
+
+    @Tool(
+        name = "viewPost",
+        description = "view a post by its ID."
+    )
+    fun viewPost(
+        @ToolParam(
+            description = "The ID of the post to view the post."
+        ) pid: Long
+    ): PostDetails? {
+
+        return try {
+            val post = postRepository.findById(pid).get()
+            taskDetails.addSuccessful("View post successfully.")
+            println(post.body)
+            return PostDetails(post, userRepository)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            taskDetails.addFailed(
+                label = "Failed to view post.",
+                error = e.stackTraceToString()
+            )
+            null
         }
     }
 

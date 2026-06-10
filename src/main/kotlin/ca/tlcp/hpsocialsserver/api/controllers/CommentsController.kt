@@ -8,6 +8,7 @@ import ca.tlcp.hpsocialsserver.db.Post
 import ca.tlcp.hpsocialsserver.db.PostRepository
 import ca.tlcp.hpsocialsserver.db.User
 import ca.tlcp.hpsocialsserver.db.UserRepository
+import org.springframework.ai.ollama.OllamaChatModel
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
@@ -25,6 +26,9 @@ class CommentsController(
     @Autowired
     private lateinit var notificationRepository: NotificationRepository
 
+    @Autowired
+    private val chatModel: OllamaChatModel? = null
+
     @PostMapping("/{pid}")
     fun postComment(@PathVariable pid: Long, @RequestParam body: String, @AuthenticationPrincipal user: Any): Boolean {
         if (body.isBlank()) return false
@@ -36,13 +40,15 @@ class CommentsController(
                 body = body,
                 user = sender
             )
-            postRepository.save(theComment)
+            val saved = postRepository.save(theComment)
             notifyAll(
                 sentBy = sender.firstName!!,
                 body = body,
                 ntfyRepo = notificationRepository,
                 userRepo = userRepository,
-                currentUser = sender
+                currentUser = sender,
+                model = chatModel!!,
+                pid = saved.id!!
             )
             true
         } catch (e: Exception) {

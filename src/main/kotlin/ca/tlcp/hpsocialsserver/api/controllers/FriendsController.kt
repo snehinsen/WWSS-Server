@@ -55,20 +55,32 @@ class FriendsController {
         }
     }
 
-    @GetMapping(path = ["/check"]) // Check for friend request
+    @GetMapping(path = ["/check"])
     fun checkForFriendRequest(
         @AuthenticationPrincipal user: Any,
         @RequestParam(name = "handle") handle: String
     ): FriendRequestDetails? {
         return try {
             val email = getUserID(user)
-            val currentUser: User = userRepository!!.getUserByEmail(email).get()
-            val selectedUser: User = userRepository!!.getUserByHandle(handle).get()
 
-            return (friendRequestRepository!!.getFriendRequestBySenderAndReceiver(currentUser, selectedUser).get()
-                ?: friendRequestRepository!!.getFriendRequestBySenderAndReceiver(selectedUser, currentUser).get())
-                .let {
-                return FriendRequestDetails(
+            val currentUser =
+                userRepository!!.getUserByEmail(email).orElse(null)
+                    ?: return null
+
+            val selectedUser =
+                userRepository!!.getUserByHandle(handle).orElse(null)
+                    ?: return null
+
+            val request =
+                friendRequestRepository!!
+                    .getFriendRequestBySenderAndReceiver(currentUser, selectedUser)
+                    .orElse(null)
+                    ?: friendRequestRepository!!
+                        .getFriendRequestBySenderAndReceiver(selectedUser, currentUser)
+                        .orElse(null)
+
+            return request?.let {
+                FriendRequestDetails(
                     request = it,
                     userRepo = userRepository!!
                 )

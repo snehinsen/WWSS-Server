@@ -16,7 +16,8 @@ data class UserDetails(
     val isWizarding: Boolean?,
     val isBot: Boolean?,
     var role: String = "USER",
-    val id: Long
+    val id: Long,
+    val isSetup: Boolean
 ) {
     constructor(user: User, userRepository: UserRepository) : this(
         firstName = user.firstName,
@@ -30,7 +31,8 @@ data class UserDetails(
         email = user.email,
         isWizarding = user.isWizarding,
         isBot = user.isBot,
-        id = user.id!!
+        id = user.id!!,
+        isSetup = user.isSetup,
     )
 }
 
@@ -51,13 +53,15 @@ data class PostDetails(
     val id: Long,
     val user: UserDetails?,
     val body: String?,
-    val attachedMedia: List<String>
+    val attachedMedia: List<String>,
+    val likedBy: List<Long>,
 ) {
     constructor(post: Post, userRepo: UserRepository) : this(
         id = post.id!!,
         user = UserDetails(post.user!!, userRepo),
         body = post.body,
-        attachedMedia = post.attachedMedia ?: emptyList()
+        attachedMedia = post.attachedMedia ?: emptyList(),
+        likedBy = post.likedBy ?: emptyList(),
     )
 }
 

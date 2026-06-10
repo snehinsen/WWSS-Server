@@ -101,6 +101,7 @@ class UserController {
                     isWizarding = false,
                     bio = "",
                     pfp = null,
+                    isSetup = false,
                 )
                 val saved = userRepository!!.save(tmpUser)
                 println("User saved: $saved")
@@ -131,6 +132,7 @@ class UserController {
             val selectedUser: User? = userRepository?.getUserByEmail(email)?.orElse(null)
             selectedUser!!.handle = request.handle
             selectedUser!!.isWizarding = request.isWizarding
+            selectedUser!!.isSetup = true
             userRepository!!.save(selectedUser)
             return true
         } catch (e: Exception) {

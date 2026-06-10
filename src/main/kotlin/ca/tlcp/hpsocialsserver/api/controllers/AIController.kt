@@ -104,7 +104,8 @@ class AIController {
                 isBot = true,
                 isWizarding = request.isWizarding,
                 pfp = "",
-                bio = request.bio
+                bio = request.bio,
+                isSetup = false
             )
 
             userRepository!!.save(user)
@@ -248,7 +249,7 @@ class AIController {
                 .defaultAdvisors(SimpleLoggerAdvisor())
                 .build()
 
-            if (state.energy > 0.5 && ( state.status != CharacterState.busy  || state.status != CharacterState.sleeping )) {
+            if (state.energy > 0.5 && (state.status != CharacterState.busy || state.status != CharacterState.sleeping)) {
 
                 val tools = toolFactory.createTaskTools(
                     character = user,
@@ -256,17 +257,18 @@ class AIController {
                 )
 
                 // FIXED: Resolved using terminal .content() to auto-loop multiple tool requests
-                val output = client
-                    .prompt(
-                        generateAutomatedMessage(
-                            currentState = state,
-                            mode = "checkTasks"
+                val output =
+                    client
+                        .prompt(
+                            generateAutomatedMessage(
+                                currentState = state,
+                                mode = "checkTasks"
+                            )
                         )
-                    )
-                    .system(content)
-                    .tools(tools)
-                    .call()
-                    .content()
+                        .system(content)
+                        .tools(tools)
+                        .call()
+                        .content()
 
                 println(output)
             } else {
