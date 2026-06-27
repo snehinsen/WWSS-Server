@@ -11,6 +11,7 @@ import java.util.*
 interface PostRepository : JpaRepository<Post, Long> {
     fun getAllByUser(user: User?): MutableList<Post>
     fun getAllByParent(parent: Post?): List<Post>
+    fun findAllByParentIsNullOrderByIdDesc(): List<Post>
 }
 
 @Repository
@@ -21,6 +22,23 @@ interface UserRepository : JpaRepository<User, Long> {
     fun getAllByIsBot(value: Boolean): List<User>
     fun existsUserByEmail(email: String?): Boolean
     fun existsUserByHandle(handle: String): Boolean
+
+    @Query("""
+        SELECT u FROM User u
+        WHERE u.email <> :email
+        AND (
+            LOWER(u.handle) LIKE LOWER(CONCAT('%', :query, '%'))
+            OR LOWER(u.firstName) LIKE LOWER(CONCAT('%', :query, '%'))
+            OR LOWER(u.lastName) LIKE LOWER(CONCAT('%', :query, '%'))
+        )
+    """)
+    fun searchUsersExcluding(
+        @Param("email") email: String,
+        @Param("query") query: String
+    ): List<User>
+
+    @Query("SELECT u FROM User u WHERE u.email <> :email")
+    fun findAllExcluding(@Param("email") email: String): List<User>
 }
 
 @Repository
@@ -45,8 +63,6 @@ interface NotificationRepository: JpaRepository<Notification, Long> {
 
 @Repository
 interface AIStateRepository : JpaRepository<AICharacterState, Long> {
-
-
     fun getAICharacterStateByUser(user: User): Optional<AICharacterState>
 }
 
@@ -76,6 +92,5 @@ interface DMMessageRepository : JpaRepository<DMMessage, Long> {
 interface CharacterMemoryRepository : JpaRepository<CharacterMemoru, Long> {
     fun findAllByCharacter(character: User): MutableList<CharacterMemoru>
     fun findAllByCharacterAndTimestamp(character: User, timestamp: Instant = Instant.now()): List<CharacterMemoru>
-    fun findByCharacterAndLabel(character: User, label: String): CharacterMemoru? // In theory, the AIs should never have the same label, but it's safer just to do a double check to make sure memories don't conflict.
-
+    fun findByCharacterAndLabel(character: User, label: String): CharacterMemoru?
 }
